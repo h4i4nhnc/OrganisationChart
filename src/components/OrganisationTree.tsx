@@ -65,8 +65,6 @@ export const OrganisationTree = ({
         );
     };
 
-    console.log("LAST ACTION", lastAction);
-
     return (
         <div key={counter}>
             <Tree
