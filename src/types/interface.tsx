@@ -4,6 +4,13 @@ export interface Employee {
     subordinates: Employee[];
 }
 
+export interface Action {
+    employee: Employee;
+    supervisor: Employee;
+    appendSupervisor: Employee;
+    isUndone: boolean;
+}
+
 export interface IEmployeeOrgApp {
     ceo: Employee;
     // **
@@ -39,14 +46,30 @@ const getEmployeeById = (id: number, root: Employee): Employee | null => {
     return null;
 };
 
+const getParentByChildId = (id: number, root: Employee): Employee | null => {
+    if (root.subordinates.find((item) => item.uniqueId === id)) return root;
+    for (let i = 0; i < root.subordinates.length; i++) {
+        const foundInBordinate = getParentByChildId(id, root.subordinates[i]);
+        if (foundInBordinate) {
+            return foundInBordinate;
+        }
+    }
+    return null;
+};
+
 // when add employee to supervisor return a new supervisor
 const addEmployee = (
     employee: Employee,
     supervisor: Employee,
-    root: Employee
+    root: Employee,
+    isRemoveSubordinates: boolean
 ): Employee => {
     if (root === supervisor) {
-        root.subordinates.push({ ...employee, subordinates: [] });
+        if (isRemoveSubordinates) {
+            root.subordinates.push({ ...employee, subordinates: [] });
+        } else {
+            root.subordinates.push(employee);
+        }
         return root;
     } else {
         root.subordinates.forEach((subordinate) => {
@@ -54,7 +77,8 @@ const addEmployee = (
                 const newSubordinate = addEmployee(
                     employee,
                     supervisor,
-                    subordinate
+                    subordinate,
+                    isRemoveSubordinates
                 );
                 subordinate = newSubordinate;
                 return root;
@@ -64,21 +88,30 @@ const addEmployee = (
     return root;
 };
 
-const removeEmployee = (employee: Employee, root: Employee): Employee => {
+const removeEmployee = (
+    employee: Employee,
+    root: Employee,
+    isCutOff: boolean
+): Employee => {
     if (root === employee) {
         console.log("you can not remove ceo");
     }
 
-    if (root.subordinates.includes(employee)) {
+    if (root.subordinates.some((sub) => sub.uniqueId === employee.uniqueId)) {
         root.subordinates = root.subordinates.filter(
-            (subordidate) => subordidate !== employee
+            (subordidate) => subordidate.uniqueId !== employee.uniqueId
         );
-        root.subordinates = [...root.subordinates, ...employee.subordinates];
+        if (!isCutOff) {
+            root.subordinates = [
+                ...root.subordinates,
+                ...employee.subordinates,
+            ];
+        }
         return root;
     } else {
         root.subordinates.forEach((subordinate) => {
             if (getEmployeeById(employee.uniqueId, subordinate)) {
-                subordinate = removeEmployee(employee, subordinate);
+                subordinate = removeEmployee(employee, subordinate, isCutOff);
             }
         });
     }
@@ -87,6 +120,7 @@ const removeEmployee = (employee: Employee, root: Employee): Employee => {
 
 export class EmployeeOrgApp implements IEmployeeOrgApp {
     ceo: Employee;
+    lastAction?: Action;
 
     constructor(initCeo: Employee) {
         this.ceo = initCeo;
@@ -95,15 +129,48 @@ export class EmployeeOrgApp implements IEmployeeOrgApp {
     move(employeeId: number, supervisorId: number) {
         const movingBordinate = getEmployeeById(employeeId, this.ceo);
         const appendSupervisor = getEmployeeById(supervisorId, this.ceo);
-        if (!movingBordinate) {
-            console.log("employeeId is not exist in organisation");
-        } else if (!appendSupervisor) {
-            console.log("supervisorId is not exist in organisation");
+        const oldSupervisor = getParentByChildId(employeeId, this.ceo);
+        if (!movingBordinate || !appendSupervisor) {
+            console.log(
+                "employeeId or supervisorId is not exist in organisation"
+            );
+        } else if (!oldSupervisor) {
+            console.log("can not move the ceo");
         } else {
-            this.ceo = removeEmployee(movingBordinate, this.ceo);
-            addEmployee(movingBordinate, appendSupervisor, this.ceo);
+            this.lastAction = {
+                employee: { ...movingBordinate },
+                supervisor: oldSupervisor,
+                appendSupervisor: appendSupervisor,
+                isUndone: false,
+            };
+            removeEmployee(movingBordinate, this.ceo, false);
+            addEmployee(movingBordinate, appendSupervisor, this.ceo, true);
         }
     }
-    undo() {}
-    redo() {}
+    undo() {
+        if (this.lastAction && !this.lastAction.isUndone) {
+            const backupEmployee = { ...this.lastAction.employee };
+            removeEmployee(this.lastAction.employee, this.ceo, true);
+            this.lastAction.employee.subordinates.forEach((item) => {
+                removeEmployee(item, this.ceo, true);
+            });
+
+            addEmployee(
+                backupEmployee,
+                this.lastAction.supervisor,
+                this.ceo,
+                false
+            );
+
+            this.lastAction.isUndone = true;
+        }
+    }
+    redo() {
+        if (this.lastAction && this.lastAction.isUndone) {
+            this.move(
+                this.lastAction.employee.uniqueId,
+                this.lastAction.appendSupervisor.uniqueId
+            );
+        }
+    }
 }
