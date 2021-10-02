@@ -5,10 +5,17 @@ import { useState } from "react";
 
 type OrganisationTreeProps = {
     ceo: Employee;
+    undo: () => void;
+    redo: () => void;
     onMove: (employeeId: number, supervisorId: number) => void;
 };
 
-export const OrganisationTree = ({ ceo, onMove }: OrganisationTreeProps) => {
+export const OrganisationTree = ({
+    ceo,
+    onMove,
+    undo,
+    redo,
+}: OrganisationTreeProps) => {
     const [employeeId, setEmployeeId] = useState(-1);
     const [supervisorId, setSupervisorId] = useState(-1);
     const [counter, setCounter] = useState(0);
@@ -18,12 +25,14 @@ export const OrganisationTree = ({ ceo, onMove }: OrganisationTreeProps) => {
         onMove(employeeId, supervisorId);
     };
 
-    const undo = () => {
-        console.log("undo");
+    const handleUndo = () => {
+        undo();
+        setCounter(counter + 1);
     };
 
-    const redo = () => {
-        console.log("redo");
+    const handleRedo = () => {
+        redo();
+        setCounter(counter + 1);
     };
 
     const renderNode = (node: Employee) => {
@@ -56,6 +65,8 @@ export const OrganisationTree = ({ ceo, onMove }: OrganisationTreeProps) => {
         );
     };
 
+    console.log("LAST ACTION", lastAction);
+
     return (
         <div key={counter}>
             <Tree
@@ -82,8 +93,8 @@ export const OrganisationTree = ({ ceo, onMove }: OrganisationTreeProps) => {
                 <button onClick={() => handleMove(employeeId, supervisorId)}>
                     Move
                 </button>
-                <button onClick={undo}>Undo</button>
-                <button onClick={redo}>Redo</button>
+                <button onClick={handleUndo}>Undo</button>
+                <button onClick={handleRedo}>Redo</button>
             </div>
         </div>
     );
