@@ -30,7 +30,10 @@ export interface IEmployeeOrgApp {
     redo(): void;
 }
 
-// depth first search: O(nLogn)
+// * get the Employee have uniqueId = id from the root of org
+// * @param id
+// * @param root
+// * @retrun Employee or null
 const getEmployeeById = (id: number, root: Employee): Employee | null => {
     if (root.uniqueId === id) return root;
     for (let i = 0; i < root.subordinates.length; i++) {
@@ -46,6 +49,10 @@ const getEmployeeById = (id: number, root: Employee): Employee | null => {
     return null;
 };
 
+// * get the Direct supervisor of Employee have uniqueId = id from the root of org
+// * @param id
+// * @param root
+// * @return Employee or null
 const getParentByChildId = (id: number, root: Employee): Employee | null => {
     if (root.subordinates.find((item) => item.uniqueId === id)) return root;
     for (let i = 0; i < root.subordinates.length; i++) {
@@ -57,7 +64,11 @@ const getParentByChildId = (id: number, root: Employee): Employee | null => {
     return null;
 };
 
-// when add employee to supervisor return a new supervisor
+// * @param employee
+// * @param supervisor
+// * @param root
+// * @isRemoveSubordinates: remove all employee's subordinates or keep it as employee's subordinates
+// * @retrun org's root
 const addEmployee = (
     employee: Employee,
     supervisor: Employee,
@@ -88,10 +99,14 @@ const addEmployee = (
     return root;
 };
 
+// * @param employee
+// * @param root
+// * @isRemoveSubordinates: remove employee's subordinates from org or attach it to employee's current supervisor
+// * @retrun org's root
 const removeEmployee = (
     employee: Employee,
     root: Employee,
-    isCutOff: boolean
+    isRemoveSubordinates: boolean
 ): Employee => {
     if (root === employee) {
         console.log("you can not remove ceo");
@@ -101,7 +116,7 @@ const removeEmployee = (
         root.subordinates = root.subordinates.filter(
             (subordidate) => subordidate.uniqueId !== employee.uniqueId
         );
-        if (!isCutOff) {
+        if (!isRemoveSubordinates) {
             root.subordinates = [
                 ...root.subordinates,
                 ...employee.subordinates,
@@ -111,7 +126,11 @@ const removeEmployee = (
     } else {
         root.subordinates.forEach((subordinate) => {
             if (getEmployeeById(employee.uniqueId, subordinate)) {
-                subordinate = removeEmployee(employee, subordinate, isCutOff);
+                subordinate = removeEmployee(
+                    employee,
+                    subordinate,
+                    isRemoveSubordinates
+                );
             }
         });
     }
@@ -122,20 +141,26 @@ export class EmployeeOrgApp implements IEmployeeOrgApp {
     ceo: Employee;
     lastAction?: Action;
 
-    constructor(initCeo: Employee) {
-        this.ceo = initCeo;
+    constructor(ceo: Employee) {
+        this.ceo = ceo;
     }
 
-    move(employeeId: number, supervisorId: number) {
+    // getters
+    getLastAction() {
+        return this.lastAction;
+    }
+
+    // methods
+    move(employeeId: number, supervisorId: number): string {
         const movingBordinate = getEmployeeById(employeeId, this.ceo);
         const appendSupervisor = getEmployeeById(supervisorId, this.ceo);
         const oldSupervisor = getParentByChildId(employeeId, this.ceo);
         if (!movingBordinate || !appendSupervisor) {
-            console.log(
-                "employeeId or supervisorId is not exist in organisation"
-            );
+            return "employeeId or supervisorId is not exist in organisation";
         } else if (!oldSupervisor) {
-            console.log("can not move the ceo");
+            return "can not move the ceo";
+        } else if (appendSupervisor.uniqueId === oldSupervisor.uniqueId) {
+            return `employeeId: ${employeeId} is already bordinate of supervisorId: ${supervisorId} `;
         } else {
             this.lastAction = {
                 employee: { ...movingBordinate },
@@ -145,6 +170,7 @@ export class EmployeeOrgApp implements IEmployeeOrgApp {
             };
             removeEmployee(movingBordinate, this.ceo, false);
             addEmployee(movingBordinate, appendSupervisor, this.ceo, true);
+            return "success";
         }
     }
     undo() {

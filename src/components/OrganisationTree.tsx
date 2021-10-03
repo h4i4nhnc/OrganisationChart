@@ -1,17 +1,19 @@
-import { Employee } from "../types/interface";
+import { Action, Employee } from "../utils/employeeOrgApp";
 import { Tree, TreeNode } from "react-organizational-chart";
 import { css } from "@emotion/css";
 import { useState } from "react";
 
 type OrganisationTreeProps = {
     ceo: Employee;
+    getLastAction: () => Action | undefined;
     undo: () => void;
     redo: () => void;
-    onMove: (employeeId: number, supervisorId: number) => void;
+    onMove: (employeeId: number, supervisorId: number) => string;
 };
 
 export const OrganisationTree = ({
     ceo,
+    getLastAction,
     onMove,
     undo,
     redo,
@@ -19,15 +21,21 @@ export const OrganisationTree = ({
     const [employeeId, setEmployeeId] = useState(-1);
     const [supervisorId, setSupervisorId] = useState(-1);
     const [counter, setCounter] = useState(0);
+    const [err, setErr] = useState("");
 
     const handleMove = (employeeId: number, supervisorId: number) => {
-        setCounter(counter + 1);
-        onMove(employeeId, supervisorId);
+        setErr("");
+        const moved = onMove(employeeId, supervisorId);
+        if (moved === "success") {
+            setCounter(counter + 1);
+        } else {
+            setErr(moved);
+        }
     };
 
     const handleUndo = () => {
         undo();
-        setCounter(counter + 1);
+        setCounter(counter - 1);
     };
 
     const handleRedo = () => {
@@ -65,34 +73,70 @@ export const OrganisationTree = ({
         );
     };
 
+    const lastAction = getLastAction();
+    const undoAble = lastAction && !lastAction.isUndone;
+
     return (
-        <div key={counter}>
-            <Tree
-                lineWidth={"2px"}
-                lineColor={"green"}
-                lineBorderRadius={"10px"}
-                label="BOD"
-            >
-                {renderNode(ceo)}
-            </Tree>
-            <div>
-                EmployeeId:
-                <input
-                    type="number"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(parseInt(e.target.value))}
-                />
-                SupervisorId:
-                <input
-                    type="number"
-                    value={supervisorId}
-                    onChange={(e) => setSupervisorId(parseInt(e.target.value))}
-                />
-                <button onClick={() => handleMove(employeeId, supervisorId)}>
-                    Move
-                </button>
-                <button onClick={handleUndo}>Undo</button>
-                <button onClick={handleRedo}>Redo</button>
+        <div className={css({ display: "flex" })}>
+            <div className={css({ width: 350 })}>
+                <div className={css({ marginTop: 20 })}>
+                    Organisation Version: {counter}
+                </div>
+                <div className={css({ marginTop: 20 })}>
+                    <div>
+                        <div>EmployeeId:</div>
+                        <div>
+                            <input
+                                type="number"
+                                value={employeeId}
+                                onChange={(e) =>
+                                    setEmployeeId(parseInt(e.target.value))
+                                }
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <div>SupervisorId:</div>
+                        <div>
+                            <input
+                                type="number"
+                                value={supervisorId}
+                                onChange={(e) =>
+                                    setSupervisorId(parseInt(e.target.value))
+                                }
+                            />
+                        </div>
+                    </div>
+                </div>
+                {err && <div className={css({ color: "red" })}>{err}</div>}
+                <div
+                    className={css({
+                        marginTop: 20,
+                        display: "flex",
+                        justifyContent: "space-evenly",
+                    })}
+                >
+                    <button
+                        onClick={() => handleMove(employeeId, supervisorId)}
+                    >
+                        Move
+                    </button>
+                    {lastAction && (
+                        <button onClick={undoAble ? handleUndo : handleRedo}>
+                            {`${undoAble ? "Undo" : "Redo"}`}
+                        </button>
+                    )}
+                </div>
+            </div>
+            <div key={counter}>
+                <Tree
+                    lineWidth={"2px"}
+                    lineColor={"green"}
+                    lineBorderRadius={"10px"}
+                    label="BOD"
+                >
+                    {renderNode(ceo)}
+                </Tree>
             </div>
         </div>
     );

@@ -1,4 +1,4 @@
-import { Employee } from "../types/interface";
+import { Employee } from "../utils/employeeOrgApp";
 
 export const ceoMark: Employee = {
     uniqueId: 1,
