@@ -145,7 +145,10 @@ export class EmployeeOrgApp implements IEmployeeOrgApp {
         this.ceo = ceo;
     }
 
-    // getters
+    // getters, setters
+    setLastAction(act: Action) {
+        this.lastAction = act;
+    }
     getLastAction() {
         return this.lastAction;
     }
@@ -162,12 +165,12 @@ export class EmployeeOrgApp implements IEmployeeOrgApp {
         } else if (appendSupervisor.uniqueId === oldSupervisor.uniqueId) {
             return `employeeId: ${employeeId} is already bordinate of supervisorId: ${supervisorId} `;
         } else {
-            this.lastAction = {
+            this.setLastAction({
                 employee: { ...movingBordinate },
                 supervisor: oldSupervisor,
                 appendSupervisor: appendSupervisor,
                 isUndone: false,
-            };
+            });
             removeEmployee(movingBordinate, this.ceo, false);
             addEmployee(movingBordinate, appendSupervisor, this.ceo, true);
             return "success";
@@ -187,8 +190,7 @@ export class EmployeeOrgApp implements IEmployeeOrgApp {
                 this.ceo,
                 false
             );
-
-            this.lastAction.isUndone = true;
+            this.setLastAction({ ...this.lastAction, isUndone: true });
         }
     }
     redo() {
