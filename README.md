@@ -1,6 +1,6 @@
 # Organisation Assignment
 Build organisation tree with:
-- move: move employee to some supervisor
+- move: move employee to a supervisor
 - undo: undo last action
 - redo: redo last action
 
