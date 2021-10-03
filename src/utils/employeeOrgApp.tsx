@@ -13,20 +13,8 @@ export interface Action {
 
 export interface IEmployeeOrgApp {
     ceo: Employee;
-    // **
-    // * Moves the employee with employeeID (uniqueId) under a supervisor (another
-    // employee) that has supervisorID (uniqueId).
-    // * E.g. move Bob (employeeID) to be subordinate of Georgina (supervisorID).
-    // * @param employeeID
-    // * @param supervisorID
     move(employeeID: number, supervisorID: number): void;
-    /**
-     * Undo last move action
-     */
     undo(): void;
-    /**
-     * Redo last undone action
-     */
     redo(): void;
 }
 
@@ -158,6 +146,9 @@ export class EmployeeOrgApp implements IEmployeeOrgApp {
         const movingBordinate = getEmployeeById(employeeId, this.ceo);
         const appendSupervisor = getEmployeeById(supervisorId, this.ceo);
         const oldSupervisor = getParentByChildId(employeeId, this.ceo);
+        if (employeeId === supervisorId) {
+            return "employee can not be itself supervisor";
+        }
         if (!movingBordinate || !appendSupervisor) {
             return "employeeId or supervisorId is not exist in organisation";
         } else if (!oldSupervisor) {
