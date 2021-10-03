@@ -1,6 +1,8 @@
 # Organisation Assignment
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Build organisation tree with:
+- move: move employee to some supervisor
+- undo: undo last action
+- redo: redo last action
 
 ## Available Scripts
 
